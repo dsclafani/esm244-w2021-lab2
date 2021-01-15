@@ -1,0 +1,57 @@
+---
+title: "ESM 244 Lab Week 2"
+author: "Danielle Sclafani"
+date: "1/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(palmerpenguins)
+library(here)
+
+# for PCA
+library(ggfortify)
+
+#for ggplot customization
+library(readxl)
+library(gghighlight)
+library(lubridate)
+library(plotly)
+
+#to make compound figure
+library(patchwork)
+```
+
+
+## Part 1: PCA with penguins - wrangling and scaling the data
+
+```{r}
+penguin_pca <- penguins %>% 
+  select(body_mass_g, ends_with("_mm")) %>% # select any column that ends in _mm
+  drop_na() %>% # to remove in all columns, you do not have to specify within dorp_na
+  scale() %>% #all values are scaled
+  prcomp() #makes it a PCA
+
+penguin_pca$rotation # run this to see the principle components (PCA)
+
+```
+
+### creating a biplot - using autoplot function
+
+```{r}
+
+penguin_complete <- penguins %>% # we want a data set with all the variables so we can add things like species color to our graph
+  drop_na(body_mass_g, ends_with("_mm")) #drop na in columns used in PCA
+
+autoplot(penguin_pca,
+         data = penguin_complete,
+         colour = "species",
+         loadings = TRUE, #adds the arrows
+         loadings.label = TRUE) + theme_classic()# adds the arrow labels
+
+#sum of axi variations = total variation predicted by the biplot
+```
+#paused at 24:35
