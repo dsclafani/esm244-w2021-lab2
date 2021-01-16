@@ -54,4 +54,88 @@ autoplot(penguin_pca,
 
 #sum of axi variations = total variation predicted by the biplot
 ```
-#paused at 24:35
+### Part 2: ggplot customization
+
+##### Read in an excel file and do some wrangling
+- graph
+
+```{r}
+fish_noaa <- read_excel(here("data","foss_landings.xlsx")) %>% 
+  janitor::clean_names() %>% 
+  mutate(across(where(is.character), tolower)) %>% #mutate columns across where there is a character to lower case, text in the observations instead of just the names of the column
+  mutate(nmfs_name = str_sub(nmfs_name, end = -4)) %>% # remove the last four characters which are **** in the column, do not want to change the name, this will just replace it and not add a new one
+  filter(confidentiality == "public")
+```
+
+make a customized graph
+```{r}
+fish_plot <- ggplot(data = fish_noaa, aes(x=year, y = pounds)) +
+  geom_line(aes(color = nmfs_name), show.legend = FALSE) +
+  theme_minimal()
+
+fish_plot #when a graph has so many lines, it is called a spaghetti plot, but sometimes we want to highlight only a few lines
+
+ggplotly(fish_plot) #makes graph interactive
+```
+
+### Use gghighlight to highlight certain series
+
+```{r}
+ggplot(data = fish_noaa, aes(x=year, y = pounds, group = nmfs_name)) +
+  geom_line() +
+  theme_minimal()+
+  gghighlight(nmfs_name == "tunas") #highlights the species we are interested in
+
+
+ggplot(data = fish_noaa, aes(x=year, y = pounds, group = nmfs_name)) +
+  geom_line(aes(color = nmfs_name)) +
+  theme_minimal()+
+  gghighlight(max(pounds)> 1e8) # can highlight based on values- when max value is greater than 1e8, once you add gghihglight, color will only be applied to the ones that you highlight, even if you say color = nmfs_name earlier in the code
+```
+
+
+### Using mutate to transform variables and change the factor order, to order the way we want instead of alphabetically
+
+#### Read in from a URL, use 'lubridate()', `mutate()`, make a graph with months in order. when you download a URL your data will change as the URL is updated. if you want to know which version of the data you used, download the data so it will not change
+
+```{r}
+monroe_wt <- read_csv("https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c8f7aa-af51-4008-80a9-56415c7c931e/download/mwtpdailyelectricitybclear.csv") %>% 
+  clean_names()
+```
+
+```{r}
+monroe_ts <- monroe_wt %>%
+  mutate(date = mdy(date)) %>% #makes a new date column, based on the old date column that is formatted as a date 
+  mutate(record_month = month(date)) %>%#pull the month from the date column and call it record_month
+  mutate(month_name = month.abb[record_month]) %>% #will contain month abbreviation from the number in record_month
+  mutate(month_name = fct_reorder(month_name, record_month)) #reorder the months in the order of the record_month
+
+
+ggplot(data=monroe_ts, aes(x = month_name, y = total_k_wh))+
+  geom_jitter()
+
+```
+
+### Part 3L Compounds figure with `patchwork` making compound figures - multiple graphs that are in an order that we choose
+
+```{r}
+graph_a <- ggplot(data = penguins, aes(x=body_mass_g, y= flipper_length_mm)) +
+  geom_point()
+
+graph_b <- ggplot(data = penguins, aes(x= species, y = flipper_length_mm)) +
+  geom_jitter(aes(color = species), show.legend = FALSE)
+
+# use vertical line operator | to put graphs side by side and use / to put graphs one over the other
+
+graph_c <- (graph_a | graph_b) / fish_plot & theme_dark() #the & sign will add change to all three graphs
+
+graph_c
+
+ggsave(here("fig","graph_c_ds.png"), width = 5, height = 6) #saves the last graph that was run
+```
+
+
+
+
+
+
